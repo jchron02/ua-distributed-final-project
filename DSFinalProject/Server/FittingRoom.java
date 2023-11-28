@@ -5,5 +5,7 @@
  Due Date: 
  ********************************/
 public class FittingRoom {
-
+    public static void main(String[] args) {
+        
+    }
 }
