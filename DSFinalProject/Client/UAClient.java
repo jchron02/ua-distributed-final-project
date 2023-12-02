@@ -24,6 +24,7 @@ public class UAClient {
             }
 
         } catch (IOException | ClassNotFoundException e) {
+            System.out.println("Unable to connect to server: " + e.getMessage());
             e.printStackTrace();
         }
     }
