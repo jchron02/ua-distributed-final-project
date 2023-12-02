@@ -6,71 +6,145 @@ import java.util.logging.*;
 
 public class UACentralServer {
 
+    public static int sleepTimer;
+    public static int fittingRooms;
+
     public static void main(String[] args) {
         int portNumber = 479;
+
         try {
+
             ServerSocket serverSocket = new ServerSocket(portNumber);
+
             System.out.println("UAServer is running and listening on port " + portNumber +"...");
 
             while (true) {
-                Socket clientSocket = serverSocket.accept();
-                System.out.println("Client connected: " + clientSocket.getInetAddress().getHostAddress());
+
+                Socket socket = serverSocket.accept();
+
+                //--> We create an object to handle the input
+                HandleInput handleInput = new HandleInput(serverSocket);
+
+                //--> We start the run() method to see if input is from a server or the client
+                handleInput.run();
+
+                //System.out.println("A connection was received, IP address: " + socket.getInetAddress().getHostAddress());
             }
         } catch (IOException e) {
-            System.err.println("Error: " + e.getMessage());
+
+            System.out.println("Error: " + e.getMessage());
         }
     }
 }
 
-class HandleClientInput implements Runnable {
-    private Socket clientSocket;
+//--> Old class name was HandleClientOutput
+class HandleInput implements Runnable {
+
+    private Socket socket;
     private Logger logger;
 
-    public HandleClientInput(Socket socket) {
-        this.clientSocket = socket;
+    private String clientIP = "";
+    private String frServerIP = "";
+
+    public HandleInput(Socket socket) {
+
+        this.socket = socket;
         configureLogger();
     }
 
     private void configureLogger() {
+
         this.logger = Logger.getLogger(HandleClientInput.class.getName());
 
         try {
+
             FileHandler fileHandler = new FileHandler("UAServer.log", true);
+
             fileHandler.setFormatter(new SimpleFormatter());
             logger.addHandler(fileHandler);
         } catch (IOException e) {
+
             System.err.println("Error setting up logger: " + e.getMessage());
         }
     }
 
     @Override
     public void run() {
-        try (PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
-             BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))) {
 
-            logInfo("New client connection from IP address " + clientSocket.getInetAddress().getHostAddress());
+        try (PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
+
+            logInfo("New connection from IP address " + socket.getInetAddress().getHostAddress());
 
             String inputLine;
+
             while ((inputLine = in.readLine()) != null) {
+
                 System.out.println("Received message from client: " + inputLine);
                 logInfo("Received message from client: " + inputLine);
+
+                //--> Checks if the connection source is a server, client or neither.
+                if(inputLine.contains("server")) {
+
+                    frServerIP = socket.getInetAddress().getHostAddress();
+
+                    continue;
+                    //fittingRoomTask();
+                }
+                else if(inputLine.contains("client")) {
+
+                    clientIP = socket.getInetAddress().getHostAddress();
+
+                    //clientTask();
+                }
+
+                //--> Close socket if source is unidentified, do I need this try catch? Could be an error here!!!
+                else {
+
+                    System.out.println("Unable to identify connection source, disconnecting...");
+
+                    try {
+
+                        socket.close();
+                    }
+                    catch(IOException e) {
+
+                        System.err.println("Error closing client socket: " + e.getMessage());
+                        logWarning("Error closing client socket: " + e.getMessage());
+                    }
+                }
+
 
                 // Start fittingroom task.
             }
 
-            logInfo("Client " + clientSocket.getInetAddress().getHostAddress() + " disconnected");
+            //--> Disconnection success message
+            logInfo("Client " + socket.getInetAddress().getHostAddress() + " disconnected");
 
-        } catch (IOException e) {
+        } catch (IOException e) {  //Why IOException in 2 places?
+
             System.err.println("Error: " + e.getMessage());
-            logWarning("Error : " + e.getMessage() + " received from response from client " + clientSocket.getInetAddress().getHostAddress());
+            logWarning("Error : " + e.getMessage() + " received from response from client " + socket.getInetAddress().getHostAddress());
         } finally {
             try {
-                clientSocket.close();
+
+                socket.close();
             } catch (IOException e) {
+
                 System.err.println("Error closing client socket: " + e.getMessage());
                 logWarning("Error closing client socket: " + e.getMessage());
             }
         }
+    }
+
+    private void fittingRoomTask() {
+
+
+    }
+
+    private void clientTask() {
+
+
     }
 
     private void logInfo(String message) {
