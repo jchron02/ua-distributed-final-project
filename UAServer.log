@@ -1,0 +1,16 @@
+Dec 02, 2023 1:04:23 AM UACentralServer$HandleClientInput logInfo
+INFO: [2023-12-02 01:04:23] INFO: New client connection from IP address 127.0.0.1
+Dec 02, 2023 1:06:51 AM UACentralServer$HandleClientInput logInfo
+INFO: [2023-12-02 01:06:51] INFO: New client connection from IP address 127.0.0.1
+Dec 02, 2023 1:07:47 AM UACentralServer$HandleClientInput logInfo
+INFO: [2023-12-02 01:07:47] INFO: New client connection from IP address 127.0.0.1
+Dec 02, 2023 1:07:47 AM UACentralServer$HandleClientInput logInfo
+INFO: [2023-12-02 01:07:47] INFO: Client 127.0.0.1 disconnected
+Dec 02, 2023 1:08:00 AM UACentralServer$HandleClientInput logInfo
+INFO: [2023-12-02 01:08:00] INFO: New client connection from IP address 127.0.0.1
+Dec 02, 2023 1:08:00 AM UACentralServer$HandleClientInput logInfo
+INFO: [2023-12-02 01:08:00] INFO: Client 127.0.0.1 disconnected
+Dec 02, 2023 1:08:41 AM UACentralServer$HandleClientInput logInfo
+INFO: [2023-12-02 01:08:41] INFO: New client connection from IP address 127.0.0.1
+Dec 02, 2023 1:08:41 AM UACentralServer$HandleClientInput logInfo
+INFO: [2023-12-02 01:08:41] INFO: Client 127.0.0.1 disconnected
