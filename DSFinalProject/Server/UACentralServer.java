@@ -18,7 +18,7 @@ public class UACentralServer {
 
             System.out.println("UAServer is running and listening on port " + portNumber +"...");
 
-            while (true) {
+            while (true) { //Does the client just send 3 messages then waits on feedback?
 
                 Socket socket = serverSocket.accept();
 
@@ -74,6 +74,10 @@ class HandleInput implements Runnable {
         try (PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
              BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
+            int i = 0; //This decides what is done to the meesage in the task methods
+
+            boolean isServer = false; //Turns true if we have a server
+
             logInfo("New connection from IP address " + socket.getInetAddress().getHostAddress());
 
             String inputLine;
@@ -84,18 +88,19 @@ class HandleInput implements Runnable {
                 logInfo("Received message from client: " + inputLine);
 
                 //--> Checks if the connection source is a server, client or neither.
-                if(inputLine.contains("server")) {
+                if(inputLine.contains("server") || isServer) {
 
-                    frServerIP = socket.getInetAddress().getHostAddress();
+                    fittingRoomTask(inputLine,i);
 
-                    continue;
-                    //fittingRoomTask();
+                    isServer = true;
+
+                    i++;
                 }
                 else if(inputLine.contains("client")) {
 
-                    clientIP = socket.getInetAddress().getHostAddress();
+                    clientTask(inputLine,i);
 
-                    //clientTask();
+                    i++;
                 }
 
                 //--> Close socket if source is unidentified, do I need this try catch? Could be an error here!!!
@@ -137,14 +142,52 @@ class HandleInput implements Runnable {
         }
     }
 
-    private void fittingRoomTask() {
+    private void fittingRoomTask(String inputLine, int i) {
 
+        switch (i) {
 
+            case 0:
+                frServerIP = socket.getInetAddress().getHostAddress();
+            case 1:
+
+        }
     }
 
-    private void clientTask() {
+    private void clientTask(String inputLine, int i) {
 
+        switch(i) {
 
+            case 0:
+
+                //-> Retrieve IP to put in the clientIP global var
+                clientIP = socket.getInetAddress().getHostAddress();
+            case 1:
+
+                //-> Splitting the string, we need two numbers, sleep timer and fitting rooms respectively
+                String[] elements;
+
+                int j = 0;
+
+                elements = inputLine.split("[\\s.,?!;:]");
+
+                for(String element : elements) {
+
+                    if(element.contains("->") & j == 0) {
+
+                        UACentralServer.sleepTimer = element.substring(2);
+
+                        j++;
+                    }
+                    else if(element.contain("->") & j == 1) {
+
+                        UACentralServer.fittingRooms = element.substring(2);
+
+                        //j++;
+                    }
+                }
+
+                //We need to make sure that we have the sleep timer and fitting rooms before this point
+        }
     }
 
     private void logInfo(String message) {
