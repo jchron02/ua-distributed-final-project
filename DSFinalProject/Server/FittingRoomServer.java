@@ -1,55 +1,34 @@
-/********************************
- Name: Joshua C, David T, Christopher M
- Team: 3
- Final Project
- Due Date: 
- ********************************/
-
-import java.io.*;
-import java.net.*;
-import java.util.concurrent.*;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.Socket;
 
 public class FittingRoomServer {
-    private final int SERVER_PORT = 576;
-    private Semaphore FittingRoomLock = new Semaphore(5);
-    private Semaphore WaitingRoomLock = new Semaphore(10);
-
-    public int getServerPort() {
-        return SERVER_PORT;
-    }
-
     public static void main(String[] args) {
-        FittingRoomServer fr = new FittingRoomServer();
-        try (ServerSocket socket = new ServerSocket(fr.getServerPort())) {
-            System.out.println("FittingRoom is running and listening on port " + fr.getServerPort() + "...");
+        String centralServerAddress = "localhost";
+        int centralServerPort = 5555;
 
-            while (true) {
-                Socket clientSocket = socket.accept();
-                // LOG THIS AS WELL.
-                System.out.println("Client connected: " + clientSocket.getInetAddress().getHostAddress());
-                fr.handleClient(clientSocket);
-            }
-        } catch (Exception e) {
-            // Add specific logging without Exception... IOException - FileNotFoundException etc...
-            // Log
-        }
-    }
+        try (Socket socket = new Socket(centralServerAddress, centralServerPort);
+             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
+             ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
 
-    public void handleClient(Socket clientSocket) {
-        try (ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream());
-             ObjectOutputStream out = new ObjectOutputStream(clientSocket.getOutputStream())) {
+            // Register with the UACentralServer as a fitting room server
+            out.writeObject("FITTING_ROOM_SERVER");
+            out.flush();
 
-            //Get Details from UACentralServer... LOG THIS AS WELL.
-            String centralServerMessage = (String) in.readObject();
-            System.out.println("Received message from UACentralServer: " + centralServerMessage);
+            // Now the server is registered and can send/receive messages through UACentralServer
+            // For example, receive a message from UACentralServer
+            Object centralServerMessage = in.readObject();
+            System.out.println("Received from UACentralServer: " + centralServerMessage);
 
-            // Process message from UACentralServer and return to UACentralServer and UAClient... LOG THIS AS WELL.
-            String responseMessage = "Response from FittingRoomServer.";
-            out.writeObject(responseMessage);
-            System.out.println("Sent message to UACentralServer: " + responseMessage);
-        } catch (Exception e) {
-            // Add specific logging without Exception... IOException - FileNotFoundException etc...
-            // Log
+            // Send a message to UACentralServer
+            Object serverOutput = "Hello from FittingRoomServer";
+            out.writeObject(serverOutput);
+            out.flush();
+            System.out.println("Sent to UACentralServer: " + serverOutput);
+
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
         }
     }
 }

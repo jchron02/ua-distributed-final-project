@@ -1,84 +1,104 @@
-import java.io.*;
-import java.net.*;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.logging.*;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 
 public class UACentralServer {
+    private static final List<ObjectOutputStream> clientOutputStreams = new ArrayList<>();
 
     public static void main(String[] args) {
-        int portNumber = 479;
-        try {
-            ServerSocket serverSocket = new ServerSocket(portNumber);
-            System.out.println("UAServer is running and listening on port " + portNumber +"...");
+        int portNumber = 5555;
+
+        try (ServerSocket serverSocket = new ServerSocket(portNumber)) {
+            System.out.println("UACentralServer is running and waiting for clients...");
 
             while (true) {
                 Socket clientSocket = serverSocket.accept();
-                System.out.println("Client connected: " + clientSocket.getInetAddress().getHostAddress());
+                System.out.println("Connected to a client");
+
+                // Handle the client connection in a separate thread
+                ClientHandler clientHandler = new ClientHandler(clientSocket);
+                new Thread(clientHandler).start();
             }
         } catch (IOException e) {
-            System.err.println("Error: " + e.getMessage());
-        }
-    }
-}
-
-class HandleClientInput implements Runnable {
-    private Socket clientSocket;
-    private Logger logger;
-
-    public HandleClientInput(Socket socket) {
-        this.clientSocket = socket;
-        configureLogger();
-    }
-
-    private void configureLogger() {
-        this.logger = Logger.getLogger(HandleClientInput.class.getName());
-
-        try {
-            FileHandler fileHandler = new FileHandler("UAServer.log", true);
-            fileHandler.setFormatter(new SimpleFormatter());
-            logger.addHandler(fileHandler);
-        } catch (IOException e) {
-            System.err.println("Error setting up logger: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
-    @Override
-    public void run() {
-        try (PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
-             BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()))) {
+    private static class ClientHandler implements Runnable {
+        private final Socket clientSocket;
 
-            logInfo("New client connection from IP address " + clientSocket.getInetAddress().getHostAddress());
+        public ClientHandler(Socket clientSocket) {
+            this.clientSocket = clientSocket;
+        }
 
-            String inputLine;
-            while ((inputLine = in.readLine()) != null) {
-                System.out.println("Received message from client: " + inputLine);
-                logInfo("Received message from client: " + inputLine);
+        @Override
+        public void run() {
+            try (
+                    ObjectOutputStream out = new ObjectOutputStream(clientSocket.getOutputStream());
+                    ObjectInputStream in = new ObjectInputStream(clientSocket.getInputStream())
+            ) {
+                // Read the client type
+                Object clientType = in.readObject();
 
-                // Start fittingroom task.
-            }
+                if ("UACLIENT".equals(clientType)) {
+                    // Handle communication with UAClient
+                    handleUAClientCommunication(in, out);
+                } else if ("FITTING_ROOM_SERVER".equals(clientType)) {
+                    // Handle communication with FittingRoomServer
+                    handleFittingRoomServerCommunication(in, out);
+                } else {
+                    System.out.println("Unknown client type");
+                }
 
-            logInfo("Client " + clientSocket.getInetAddress().getHostAddress() + " disconnected");
-
-        } catch (IOException e) {
-            System.err.println("Error: " + e.getMessage());
-            logWarning("Error : " + e.getMessage() + " received from response from client " + clientSocket.getInetAddress().getHostAddress());
-        } finally {
-            try {
-                clientSocket.close();
-            } catch (IOException e) {
-                System.err.println("Error closing client socket: " + e.getMessage());
-                logWarning("Error closing client socket: " + e.getMessage());
+            } catch (IOException | ClassNotFoundException e) {
+                e.printStackTrace();
             }
         }
-    }
 
-    private void logInfo(String message) {
+        private void handleUAClientCommunication(ObjectInputStream in, ObjectOutputStream out) throws IOException, ClassNotFoundException {
+            // Register UAClient
+            clientOutputStreams.add(out);
 
-        logger.log(Level.INFO, "[" + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()) + "] INFO: " + message);
-    }
+            // Read and process objects from the UAClient
+            Object clientInput = in.readObject();
+            System.out.println("Received from UAClient: " + clientInput);
 
-    private void logWarning(String message) {
-        logger.log(Level.WARNING, "[" + new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date()) + "] WARNING: " + message);
+            // Respond to the UAClient
+            Object serverResponse = "Server response to UAClient";
+            out.writeObject(serverResponse);
+            out.flush();
+            System.out.println("Sent response to UAClient");
+        }
+
+        private void handleFittingRoomServerCommunication(ObjectInputStream in, ObjectOutputStream out) throws IOException, ClassNotFoundException {
+            // Communicate with FittingRoomServer
+            // For example, send a message to FittingRoomServer
+            Object messageToFittingRoom = "Hello from UACentralServer to FittingRoomServer";
+            out.writeObject(messageToFittingRoom);
+            out.flush();
+            System.out.println("Sent message to FittingRoomServer: " + messageToFittingRoom);
+
+            // Receive a message from FittingRoomServer
+            Object fittingRoomResponse = in.readObject();
+            System.out.println("Received from FittingRoomServer: " + fittingRoomResponse);
+
+            // Relay the message to all connected UAClients
+            relayMessageToUAClients(fittingRoomResponse);
+        }
+
+        private void relayMessageToUAClients(Object message) {
+            for (ObjectOutputStream clientOut : clientOutputStreams) {
+                try {
+                    clientOut.writeObject(message);
+                    clientOut.flush();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 }
