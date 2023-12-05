@@ -10,6 +10,7 @@ public class UACentralServer {
     public static int fittingRooms;
 
     public static void main(String[] args) {
+
         int portNumber = 479;
 
         try {
@@ -23,7 +24,7 @@ public class UACentralServer {
                 Socket socket = serverSocket.accept();
 
                 //--> We create an object to handle the input
-                HandleInput handleInput = new HandleInput(serverSocket);
+                HandleInput handleInput = new HandleInput(socket);
 
                 //--> We start the run() method to see if input is from a server or the client
                 handleInput.run();
@@ -49,10 +50,10 @@ class HandleInput implements Runnable {
     public HandleInput(Socket socket) {
 
         this.socket = socket;
-        configureLogger();
+        //configureLogger();
     }
 
-    private void configureLogger() {
+    /*private void configureLogger() {
 
         this.logger = Logger.getLogger(HandleClientInput.class.getName());
 
@@ -66,7 +67,7 @@ class HandleInput implements Runnable {
 
             System.err.println("Error setting up logger: " + e.getMessage());
         }
-    }
+    }*/
 
     @Override
     public void run() {
@@ -74,9 +75,11 @@ class HandleInput implements Runnable {
         try (PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
              BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()))) {
 
-            int i = 0; //This decides what is done to the meesage in the task methods
+            //-> This decides what is done to the message in the task methods
+            int task = 0;
 
-            boolean isServer = false; //Turns true if we have a server
+            //-> Turns true if we have a server connection
+            boolean isServer = false;
 
             logInfo("New connection from IP address " + socket.getInetAddress().getHostAddress());
 
@@ -90,17 +93,17 @@ class HandleInput implements Runnable {
                 //--> Checks if the connection source is a server, client or neither.
                 if(inputLine.contains("server") || isServer) {
 
-                    fittingRoomTask(inputLine,i);
+                    fittingRoomTask(inputLine, task);
 
                     isServer = true;
 
-                    i++;
+                    task++;
                 }
                 else if(inputLine.contains("client")) {
 
-                    clientTask(inputLine,i);
+                    clientTask(inputLine, task);
 
-                    i++;
+                    task++;
                 }
 
                 //--> Close socket if source is unidentified, do I need this try catch? Could be an error here!!!
@@ -147,8 +150,12 @@ class HandleInput implements Runnable {
         switch (i) {
 
             case 0:
-                frServerIP = socket.getInetAddress().getHostAddress();
+
+                this.frServerIP = socket.getInetAddress().getHostAddress();
+
+                break;
             case 1:
+
 
         }
     }
@@ -160,7 +167,9 @@ class HandleInput implements Runnable {
             case 0:
 
                 //-> Retrieve IP to put in the clientIP global var
-                clientIP = socket.getInetAddress().getHostAddress();
+                this.clientIP = socket.getInetAddress().getHostAddress();
+
+                break;
             case 1:
 
                 //-> Splitting the string, we need two numbers, sleep timer and fitting rooms respectively
@@ -174,18 +183,20 @@ class HandleInput implements Runnable {
 
                     if(element.contains("->") & j == 0) {
 
-                        UACentralServer.sleepTimer = element.substring(2);
+                        UACentralServer.sleepTimer = Integer.parseInt(element.substring(2));
 
                         j++;
                     }
-                    else if(element.contain("->") & j == 1) {
+                    else if(element.contains("->") & j == 1) {
 
-                        UACentralServer.fittingRooms = element.substring(2);
+                        UACentralServer.fittingRooms = Integer.parseInt(element.substring(2));
 
+                        break;
                         //j++;
                     }
                 }
 
+                break;
                 //We need to make sure that we have the sleep timer and fitting rooms before this point
         }
     }
