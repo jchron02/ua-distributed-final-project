@@ -8,6 +8,7 @@ import java.util.List;
 
 public class UACentralServer {
     private static final List<ObjectOutputStream> clientOutputStreams = new ArrayList<>();
+    private static final List<ObjectOutputStream> fittingRoomServerStreams = new ArrayList<>();
 
     public static void main(String[] args) {
         int portNumber = 5555;
@@ -76,6 +77,7 @@ public class UACentralServer {
 
         private void handleFittingRoomServerCommunication(ObjectInputStream in, ObjectOutputStream out) throws IOException, ClassNotFoundException {
             // Communicate with FittingRoomServer
+            fittingRoomServerStreams.add(out);
             // For example, send a message to FittingRoomServer
             Object messageToFittingRoom = "Hello from UACentralServer to FittingRoomServer";
             out.writeObject(messageToFittingRoom);
@@ -87,10 +89,10 @@ public class UACentralServer {
             System.out.println("Received from FittingRoomServer: " + fittingRoomResponse);
 
             // Relay the message to all connected UAClients
-            relayMessageToUAClients(fittingRoomResponse);
+            relayMessageToAllUAClients(fittingRoomResponse);
         }
 
-        private void relayMessageToUAClients(Object message) {
+        private void relayMessageToAllUAClients(Object message) {
             for (ObjectOutputStream clientOut : clientOutputStreams) {
                 try {
                     clientOut.writeObject(message);
@@ -98,6 +100,36 @@ public class UACentralServer {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+            }
+        }
+
+        private void relayMessageToAllFittingRoomServers(Object message) {
+            for (ObjectOutputStream fitOut : fittingRoomServerStreams) {
+                try {
+                    fitOut.writeObject(message);
+                    fitOut.flush();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        private void relayMessageToUAClient(Object message, ObjectOutputStream out) {
+            try {
+                out.writeObject(message);
+                out.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        }
+
+        private void relayMessageToFittingRoomServer(Object message, ObjectOutputStream out) {
+            try {
+                out.writeObject(message);
+                out.flush();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
     }
