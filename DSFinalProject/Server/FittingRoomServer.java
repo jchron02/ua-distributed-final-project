@@ -73,6 +73,9 @@ public class FittingRoomServer {
             int numWaitingRooms = Integer.parseInt(parts[3]);
             // Handle the customer request as needed
             System.out.println("Instantiating FittingRooms " + numFittingRooms + " and WaitingRooms " + numWaitingRooms + " in FittingRoomServer");
+
+            fittingRoomLock = new Semaphore(numFittingRooms);
+            waitingRoomLock = new Semaphore(numWaitingRooms);
         }
     }
 }
