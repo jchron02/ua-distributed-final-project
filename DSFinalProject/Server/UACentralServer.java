@@ -64,15 +64,17 @@ public class UACentralServer {
         }
 
     }
+
     private static void createNewCustomer(String type) {
-        if(type.equals("FITTING_ROOM")) {
+        if (type.equals("FITTING_ROOM")) {
             ObjectOutputStream fittingRoomServerOut = fittingRoomServerOutputStreams.get(fittingRoomIndex);
             handleCustomerRequest(fittingRoomServerOut);
-        }else if(type.equals("WAITING")){
+        } else if (type.equals("WAITING")) {
             ObjectOutputStream waitingRoomServerOut = fittingRoomServerOutputStreams.get(waitingRoomIndex);
             handleCustomerRequest(waitingRoomServerOut);
         }
     }
+
     private static void handleCustomerRequest(ObjectOutputStream fittingRoomServerOut) {
         // Assuming the customer request is sent to FittingRoomServers
         // Generate a new customer ID
@@ -179,42 +181,53 @@ public class UACentralServer {
             }
         }
 
-        private void handleUAClientCommunication(ObjectInputStream in, ObjectOutputStream out) throws IOException, ClassNotFoundException {
+        private void handleUAClientCommunication(ObjectInputStream in, ObjectOutputStream out) {
             // Register UAClient
             clientOutputStreams.add(out);
+            try {
 
-            int clientSleepTimer = in.readInt();
-            int clientNumberOfFittingRooms = in.readInt();
-            sleepTimer.set(clientSleepTimer);
-            numberOfFittingRooms.set(clientNumberOfFittingRooms);
-            numberOfWaitingRooms.set(clientNumberOfFittingRooms*2);
-            // Read and process objects from the UAClient
-            Object clientInput = in.readObject();
-            System.out.println("Received from UAClient: " + clientInput);
+                int clientSleepTimer = in.readInt();
+                int clientNumberOfFittingRooms = in.readInt();
+                sleepTimer.set(clientSleepTimer);
+                numberOfFittingRooms.set(clientNumberOfFittingRooms);
+                numberOfWaitingRooms.set(clientNumberOfFittingRooms * 2);
+                // Read and process objects from the UAClient
+                Object clientInput = in.readObject();
+                System.out.println("Received from UAClient: " + clientInput);
 
-            // Respond to the UAClient
-            Object serverResponse = "Server response to UAClient";
-            out.writeObject(serverResponse);
-            out.flush();
-            System.out.println("Sent response to UAClient");
+                numberOfCustomers = numberOfFittingRooms.get() + numberOfWaitingRooms.get();
+                customersLatch.countDown();
+                // Respond to the UAClient
+                Object serverResponse = "Server response to UAClient";
+                out.writeObject(serverResponse);
+
+                out.flush();
+                System.out.println("Sent response to UAClient");
+            } catch (Exception ex) {
+
+            }
         }
 
-        private void handleFittingRoomServerCommunication(ObjectInputStream in, ObjectOutputStream out) throws IOException, ClassNotFoundException {
+        private void handleFittingRoomServerCommunication(ObjectInputStream in, ObjectOutputStream out) {
             // Communicate with FittingRoomServer
-            fittingRoomServerOutputStreams.add(out);
-            fittingRoomServerInputStreams.add(in);
-            // For example, send a message to FittingRoomServer
-            Object messageToFittingRoom = "Hello from UACentralServer to FittingRoomServer";
-            out.writeObject(messageToFittingRoom);
-            out.flush();
-            System.out.println("Sent message to FittingRoomServer: " + messageToFittingRoom);
+            try {
+                fittingRoomServerOutputStreams.add(out);
+                fittingRoomServerInputStreams.add(in);
+                // For example, send a message to FittingRoomServer
+                Object messageToFittingRoom = "Hello from UACentralServer to FittingRoomServer";
+                out.writeObject(messageToFittingRoom);
+                out.flush();
+                System.out.println("Sent message to FittingRoomServer: " + messageToFittingRoom);
 
-            // Receive a message from FittingRoomServer
-            Object fittingRoomResponse = in.readObject();
-            System.out.println("Received from FittingRoomServer: " + fittingRoomResponse);
+                // Receive a message from FittingRoomServer
+                Object fittingRoomResponse = in.readObject();
+                System.out.println("Received from FittingRoomServer: " + fittingRoomResponse);
 
-            // Relay the message to all connected UAClients
-            relayMessageToAllUAClients(fittingRoomResponse);
+                // Relay the message to all connected UAClients
+                relayMessageToAllUAClients(fittingRoomResponse);
+            } catch (Exception ex){
+
+            }
         }
 
         private void relayMessageToAllUAClients(Object message) {
