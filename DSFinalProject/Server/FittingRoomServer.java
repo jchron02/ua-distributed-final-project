@@ -5,6 +5,7 @@ import java.util.concurrent.*;
 public class FittingRoomServer {
     private static Semaphore fittingRoomLock;
     private static Semaphore waitingRoomLock;
+
     public static void main(String[] args) {
         String centralServerAddress = "localhost";
         int centralServerPort = 5555;
@@ -12,7 +13,6 @@ public class FittingRoomServer {
         try (Socket socket = new Socket(centralServerAddress, centralServerPort);
              ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
              ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
-
             // Register with the UACentralServer as a fitting room server
             out.writeObject("FITTING_ROOM_SERVER");
             out.flush();
@@ -25,13 +25,13 @@ public class FittingRoomServer {
                 System.out.println("Received from UACentralServer: " + centralServerMessage);
 
                 // Process the message
-                if (centralServerMessage instanceof String && ((String) centralServerMessage).startsWith("PermitsInfo")) {
+                if (centralServerMessage instanceof String && ((String) centralServerMessage).startsWith("REQUESTING")) {
                     // Handle permits information message
                     updatePermits(out);
-                } else if (centralServerMessage instanceof String && ((String) centralServerMessage).startsWith("Customer#")) {
+                } else if (centralServerMessage instanceof String && ((String) centralServerMessage).startsWith("NEW")) {
                     // Handle customer request
                     handleCustomerRequest((String) centralServerMessage);
-                } else if (centralServerMessage instanceof String && ((String) centralServerMessage).startsWith("FittingRoom#")) {
+                } else if (centralServerMessage instanceof String && ((String) centralServerMessage).startsWith("FITTING")) {
                     // Handle fitting room request
                     handleFittingRoomRequest((String) centralServerMessage);
 
@@ -39,13 +39,14 @@ public class FittingRoomServer {
                 // Add more cases if needed for other types of messages
 
                 // Perform other tasks as needed
+
             }
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
         }
     }
 
-    private static void updatePermits(ObjectOutputStream out){
+    private static void updatePermits(ObjectOutputStream out) {
         // Send available permits to UACentralServer
         String permitsMessage = "PermitsInfo#" + fittingRoomLock.availablePermits() + "#" + waitingRoomLock.availablePermits();
         System.out.println("Sending to UACentralServer: " + permitsMessage);
@@ -66,9 +67,10 @@ public class FittingRoomServer {
             System.out.println("Received customer " + customerId + " in FittingRoomServer");
         }
     }
-    private static void handleFittingRoomRequest(String fittingRoomRequest){
+
+    private static void handleFittingRoomRequest(String fittingRoomRequest) {
         String[] parts = fittingRoomRequest.split("#");
-        if (parts.length == 4 && "FittingRoom".equals(parts[0]) && "WaitingRooms".equals(parts[2])) {
+        if (parts.length == 4 && "FITTING_ROOM".equals(parts[0]) && "WAITING_ROOM".equals(parts[2])) {
             int numFittingRooms = Integer.parseInt(parts[1]);
             int numWaitingRooms = Integer.parseInt(parts[3]);
             // Handle the customer request as needed

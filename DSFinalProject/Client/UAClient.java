@@ -22,16 +22,32 @@ public class UAClient {
 
             // Send sleep timer and number of fitting rooms
             out.writeInt(sleepTimer);
+            out.flush();
             out.writeInt(numberOfFittingRooms);
             out.flush();
 
-            System.out.println("Sent to server: " + clientOutput);
 
-            // Receive the server's response
-            Object serverResponse = in.readObject();
-            System.out.println("Received from server: " + serverResponse);
+            while (true) {
+                // Receive a message from UACentralServer
+                try {
+                    Object centralServerMessage = in.readObject();
 
-        } catch (IOException | ClassNotFoundException e) {
+                    // Process the message
+                    if (centralServerMessage instanceof String && ((String) centralServerMessage).contains("PermitsInfo")) {
+
+                    } else if (centralServerMessage instanceof String && ((String) centralServerMessage).startsWith("Customer#")) {
+
+                    } else if (centralServerMessage instanceof String && ((String) centralServerMessage).startsWith("FittingRoom#")) {
+
+                    }
+                    // Add more cases if needed for other types of messages
+
+                    // Perform other tasks as needed
+                } catch (IOException | ClassNotFoundException e) {
+                }
+
+            }
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }

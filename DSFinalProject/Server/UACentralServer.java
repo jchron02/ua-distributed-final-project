@@ -33,17 +33,17 @@ public class UACentralServer {
                 }
 
                 for (int i = 0; i < numberOfCustomers; i++) {
-                    new Thread(UACentralServer::communicateWithFittingRoomServers).start();
+                    new Thread(() -> communicateWithFittingRoomServers()).start();
                 }
             }).start();
 
 
             while (true) {
-                Socket clientSocket = serverSocket.accept();
-                System.out.println("Connected to a client");
+                Socket connectionSocket = serverSocket.accept();
+                System.out.println("Connection Received.");
 
                 // Handle the client connection in a separate thread
-                ConnectionHandler connectionHandler = new ConnectionHandler(clientSocket);
+                ConnectionHandler connectionHandler = new ConnectionHandler(connectionSocket);
                 new Thread(connectionHandler).start();
 
 
@@ -153,8 +153,8 @@ public class UACentralServer {
     private static class ConnectionHandler implements Runnable {
         private final Socket connectionSocket;
 
-        public ConnectionHandler(Socket clientSocket) {
-            this.connectionSocket = clientSocket;
+        public ConnectionHandler(Socket connectionSocket) {
+            this.connectionSocket = connectionSocket;
         }
 
         @Override
@@ -192,19 +192,29 @@ public class UACentralServer {
                 numberOfFittingRooms.set(clientNumberOfFittingRooms);
                 numberOfWaitingRooms.set(clientNumberOfFittingRooms * 2);
                 // Read and process objects from the UAClient
-                Object clientInput = in.readObject();
-                System.out.println("Received from UAClient: " + clientInput);
-
                 numberOfCustomers = numberOfFittingRooms.get() + numberOfWaitingRooms.get();
-                customersLatch.countDown();
+
                 // Respond to the UAClient
                 Object serverResponse = "Server response to UAClient";
                 out.writeObject(serverResponse);
-
                 out.flush();
-                System.out.println("Sent response to UAClient");
+                initializeFittingRooms();
+                customersLatch.countDown();
             } catch (Exception ex) {
 
+            }
+        }
+
+        private static void initializeFittingRooms() {
+            for (ObjectOutputStream fitOut : fittingRoomServerOutputStreams) {
+                try {
+                    Object messageToFittingRoom = "FITTING_ROOM#" + numberOfFittingRooms.get() + "#WAITING_ROOM#" + numberOfWaitingRooms.get();
+                    fitOut.writeObject(messageToFittingRoom);
+                    fitOut.flush();
+                    System.out.println("Sent message to FittingRoomServer: " + messageToFittingRoom);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
         }
 
@@ -218,14 +228,7 @@ public class UACentralServer {
                 out.writeObject(messageToFittingRoom);
                 out.flush();
                 System.out.println("Sent message to FittingRoomServer: " + messageToFittingRoom);
-
-                // Receive a message from FittingRoomServer
-                Object fittingRoomResponse = in.readObject();
-                System.out.println("Received from FittingRoomServer: " + fittingRoomResponse);
-
-                // Relay the message to all connected UAClients
-                relayMessageToAllUAClients(fittingRoomResponse);
-            } catch (Exception ex){
+            } catch (Exception ex) {
 
             }
         }
