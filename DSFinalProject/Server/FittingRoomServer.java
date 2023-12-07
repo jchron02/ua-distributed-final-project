@@ -45,7 +45,12 @@ public class FittingRoomServer {
             System.out.println("ERROR: " + e.getMessage());
         }
     }
-
+    /*
+     * Sends available permits to UACentralServer
+     * @param out
+     * @throws IOException
+     * @return void
+     */
     private static void updatePermits(ObjectOutputStream out) {
         // Send available permits to UACentralServer
         String permitsMessage = "PermitsInfo#" + fittingRoomLock.availablePermits() + "#" + waitingRoomLock.availablePermits();
@@ -57,7 +62,10 @@ public class FittingRoomServer {
             System.out.println("Error sending message to UACentralServer: " + e.getMessage());
         }
     }
-
+    /*
+     * Parses the customer request and handles it
+     * @param customerRequest
+     */
     private static void handleCustomerRequest(String customerRequest) {
         // Parse the customer request and handle it
         String[] parts = customerRequest.split("#");
@@ -67,7 +75,10 @@ public class FittingRoomServer {
             System.out.println("Received customer " + customerId + " in FittingRoomServer");
         }
     }
-
+    /*
+     * Initializes the parameters that is sent through UACentralServer originaiting from UAClient
+     * @param fittingRoomRequest
+     */
     private static void handleFittingRoomRequest(String fittingRoomRequest) {
         String[] parts = fittingRoomRequest.split("#");
         if (parts.length == 4 && "FITTING_ROOM".equals(parts[0]) && "WAITING_ROOM".equals(parts[2])) {
