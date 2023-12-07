@@ -26,27 +26,17 @@ public class UAClient {
             out.writeInt(numberOfFittingRooms);
             out.flush();
 
-
-            while (true) {
-                // Receive a message from UACentralServer
-                try {
-                    Object centralServerMessage = in.readObject();
-
-                    // Process the message
-                    if (centralServerMessage instanceof String && ((String) centralServerMessage).contains("PermitsInfo")) {
-
-                    } else if (centralServerMessage instanceof String && ((String) centralServerMessage).startsWith("Customer#")) {
-
-                    } else if (centralServerMessage instanceof String && ((String) centralServerMessage).startsWith("FittingRoom#")) {
-
-                    }
-                    // Add more cases if needed for other types of messages
-
-                    // Perform other tasks as needed
-                } catch (IOException | ClassNotFoundException e) {
-                }
-
-            }
+//            Unable to verify this worked... OBSOLETE
+//            while (true) {
+//                // Receive a message from UACentralServer
+//                try {
+//                    Object centralServerMessage = in.readObject();
+//
+//                    // Perform other tasks as needed
+//                } catch (IOException | ClassNotFoundException e) {
+//                }
+//
+//            }
         } catch (IOException e) {
             e.printStackTrace();
         }

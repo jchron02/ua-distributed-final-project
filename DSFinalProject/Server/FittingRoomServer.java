@@ -25,16 +25,15 @@ public class FittingRoomServer {
                 System.out.println("Received from UACentralServer: " + centralServerMessage);
 
                 // Process the message
-                if (centralServerMessage instanceof String && ((String) centralServerMessage).startsWith("REQUESTING")) {
+                if (((String) centralServerMessage).startsWith("REQUESTING")) {
                     // Handle permits information message
                     updatePermits(out);
-                } else if (centralServerMessage instanceof String && ((String) centralServerMessage).startsWith("NEW")) {
+                } else if (((String) centralServerMessage).startsWith("NEW")) {
                     // Handle customer request
                     handleCustomerRequest((String) centralServerMessage);
-                } else if (centralServerMessage instanceof String && ((String) centralServerMessage).startsWith("FITTING")) {
+                } else if (((String) centralServerMessage).startsWith("FITTING")) {
                     // Handle fitting room request
                     handleFittingRoomRequest((String) centralServerMessage);
-
                 }
                 // Add more cases if needed for other types of messages
 
@@ -43,6 +42,7 @@ public class FittingRoomServer {
             }
         } catch (IOException | ClassNotFoundException e) {
             e.printStackTrace();
+            System.out.println("ERROR: " + e.getMessage());
         }
     }
 

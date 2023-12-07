@@ -16,7 +16,6 @@ public class UACentralServer {
     private static AtomicInteger customerIdCounter = new AtomicInteger(0);
     private static int numberOfCustomers = 0;
     private static int fittingRoomIndex = 0;
-    private static int waitingRoomIndex = 0;
     private static CountDownLatch customersLatch = new CountDownLatch(1);
 
     public static void main(String[] args) {
@@ -24,6 +23,7 @@ public class UACentralServer {
 
         try (ServerSocket serverSocket = new ServerSocket(portNumber)) {
             System.out.println("UACentralServer is running and waiting for clients...");
+
             new Thread(() -> {
                 try {
                     // Wait for numberOfCustomers to be populated
@@ -36,7 +36,6 @@ public class UACentralServer {
                     new Thread(() -> communicateWithFittingRoomServers()).start();
                 }
             }).start();
-
 
             while (true) {
                 Socket connectionSocket = serverSocket.accept();
@@ -67,10 +66,10 @@ public class UACentralServer {
 
     private static void createNewCustomer(String type) {
         if (type.equals("FITTING_ROOM")) {
-            ObjectOutputStream fittingRoomServerOut = fittingRoomServerOutputStreams.get(fittingRoomIndex);
+            ObjectOutputStream fittingRoomServerOut = fittingRoomServerOutputStreams.get(0);
             handleCustomerRequest(fittingRoomServerOut);
         } else if (type.equals("WAITING")) {
-            ObjectOutputStream waitingRoomServerOut = fittingRoomServerOutputStreams.get(waitingRoomIndex);
+            ObjectOutputStream waitingRoomServerOut = fittingRoomServerOutputStreams.get(0);
             handleCustomerRequest(waitingRoomServerOut);
         }
     }
@@ -104,49 +103,32 @@ public class UACentralServer {
         // Send a message to all FittingRoomServers with permits information
         int fittingRoomPermitsCheck = 0;
         int waitingChairPermitsCheck = 0;
-        int greatestAmountFRS = 0;
-        int greatestAmountWCRS = 0;
         Object permitsMessage = "REQUESTING_PERMITS";
-        for (int i = 0; i < fittingRoomServerOutputStreams.size(); i++) {
-            try {
-                ObjectOutputStream fittingRoomServerOut = fittingRoomServerOutputStreams.get(i);
-                ObjectInputStream fittingRoomServerIn = fittingRoomServerInputStreams.get(i);
-                fittingRoomServerOut.writeObject(permitsMessage);
-                fittingRoomServerOut.flush();
 
-                Object responseMessage = fittingRoomServerIn.readObject();
-                String[] parts = getPermitValues((String) responseMessage);
-                int numFittingRooms = Integer.parseInt(parts[1]);
-                int numWaitingChairs = Integer.parseInt(parts[2]);
-                fittingRoomPermitsCheck += numFittingRooms;
-                waitingChairPermitsCheck += numWaitingChairs;
+        try {
+            ObjectOutputStream fittingRoomServerOut = fittingRoomServerOutputStreams.get(0);
+            ObjectInputStream fittingRoomServerIn = fittingRoomServerInputStreams.get(0);
+            fittingRoomServerOut.writeObject(permitsMessage);
+            fittingRoomServerOut.flush();
 
-                if (numFittingRooms > greatestAmountFRS) {
-                    greatestAmountFRS = i + 1;
-                }
-                if (numWaitingChairs > greatestAmountWCRS) {
-                    greatestAmountWCRS = i + 1;
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (ClassNotFoundException e) {
-                throw new RuntimeException(e);
-            }
+            Object responseMessage = fittingRoomServerIn.readObject();
+            String[] parts = getPermitValues((String) responseMessage);
+            int numFittingRooms = Integer.parseInt(parts[1]);
+            int numWaitingChairs = Integer.parseInt(parts[2]);
+            fittingRoomPermitsCheck = numFittingRooms;
+            waitingChairPermitsCheck = numWaitingChairs;
 
-            fittingRoomPermits.set(fittingRoomPermitsCheck);
-            waitingChairPermits.set(waitingChairPermitsCheck);
+        } catch (IOException e) {
+            e.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
         }
 
-        if (greatestAmountFRS > 0) {
-            fittingRoomIndex = greatestAmountFRS - 1;
-            createNewCustomer("FITTING");
-        } else if (greatestAmountWCRS > 0) {
-            waitingRoomIndex = greatestAmountWCRS - 1;
-            createNewCustomer("WAITING");
-        } else {
-            // Handle the case when no fitting rooms are available
-            System.out.println("No fitting rooms available");
-        }
+        fittingRoomPermits.set(fittingRoomPermitsCheck);
+        waitingChairPermits.set(waitingChairPermitsCheck);
+
+
+        createNewCustomer("FITTING");
     }
 
 
@@ -178,6 +160,7 @@ public class UACentralServer {
 
             } catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
+                System.out.println("ERROR: " + e.getMessage());
             }
         }
 
@@ -185,7 +168,6 @@ public class UACentralServer {
             // Register UAClient
             clientOutputStreams.add(out);
             try {
-
                 int clientSleepTimer = in.readInt();
                 int clientNumberOfFittingRooms = in.readInt();
                 sleepTimer.set(clientSleepTimer);
@@ -200,22 +182,23 @@ public class UACentralServer {
                 out.flush();
                 initializeFittingRooms();
                 customersLatch.countDown();
-            } catch (Exception ex) {
-
+            } catch (Exception e) {
+                System.out.println("ERROR: " + e.getMessage());
             }
         }
 
         private static void initializeFittingRooms() {
-            for (ObjectOutputStream fitOut : fittingRoomServerOutputStreams) {
-                try {
-                    Object messageToFittingRoom = "FITTING_ROOM#" + numberOfFittingRooms.get() + "#WAITING_ROOM#" + numberOfWaitingRooms.get();
-                    fitOut.writeObject(messageToFittingRoom);
-                    fitOut.flush();
-                    System.out.println("Sent message to FittingRoomServer: " + messageToFittingRoom);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
+            try {
+                ObjectOutputStream fitOut = fittingRoomServerOutputStreams.get(0);
+                Object messageToFittingRoom = "FITTING_ROOM#" + numberOfFittingRooms.get() + "#WAITING_ROOM#" + numberOfWaitingRooms.get();
+                fitOut.writeObject(messageToFittingRoom);
+                fitOut.flush();
+                System.out.println("Sent message to FittingRoomServer: " + messageToFittingRoom);
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.out.println("ERROR: " + e.getMessage());
             }
+
         }
 
         private void handleFittingRoomServerCommunication(ObjectInputStream in, ObjectOutputStream out) {
@@ -228,8 +211,10 @@ public class UACentralServer {
                 out.writeObject(messageToFittingRoom);
                 out.flush();
                 System.out.println("Sent message to FittingRoomServer: " + messageToFittingRoom);
-            } catch (Exception ex) {
-
+                Object x = in.readObject();
+                System.out.println("Received message from FittingRoomServer: " + x);
+            } catch (Exception e) {
+                System.out.println("Failed to send message to UAClient: " + e.getMessage());
             }
         }
 
@@ -240,6 +225,7 @@ public class UACentralServer {
                     clientOut.flush();
                 } catch (IOException e) {
                     e.printStackTrace();
+                    System.out.println("ERROR: " + e.getMessage());
                 }
             }
         }
@@ -251,6 +237,7 @@ public class UACentralServer {
                     fitOut.flush();
                 } catch (IOException e) {
                     e.printStackTrace();
+                    System.out.println("ERROR: " + e.getMessage());
                 }
             }
         }
@@ -261,6 +248,7 @@ public class UACentralServer {
                 out.flush();
             } catch (IOException e) {
                 e.printStackTrace();
+                System.out.println("ERROR: " + e.getMessage());
             }
 
         }
@@ -271,6 +259,7 @@ public class UACentralServer {
                 out.flush();
             } catch (IOException e) {
                 e.printStackTrace();
+                System.out.println("ERROR: " + e.getMessage());
             }
         }
     }
