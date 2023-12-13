@@ -4,14 +4,13 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.util.Random;
 import java.util.concurrent.Semaphore;
 
 public class FittingRoomServer {
 
-    private static final String CENTRAL_SERVER_HOST = "localhost";
-    private static final int CENTRAL_SERVER_PORT = 252;
+    private static final String HOST = "localhost";
+    private static final int PORT = 252;
     private Socket centralServerSocket;
     private BufferedReader centralServerIn;
     private PrintWriter centralServerOut;
@@ -26,7 +25,7 @@ public class FittingRoomServer {
     public FittingRoomServer() {
         try {
             // Connect to CentralServer
-            centralServerSocket = new Socket(CENTRAL_SERVER_HOST, CENTRAL_SERVER_PORT);
+            centralServerSocket = new Socket(HOST, PORT);
             centralServerIn = new BufferedReader(new InputStreamReader(centralServerSocket.getInputStream()));
             centralServerOut = new PrintWriter(centralServerSocket.getOutputStream(), true);
 
