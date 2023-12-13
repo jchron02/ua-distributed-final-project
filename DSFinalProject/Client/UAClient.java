@@ -1,54 +1,30 @@
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.io.PrintWriter;
 import java.net.Socket;
+import java.util.Random;
 
 public class UAClient {
+    private static final String HOST = "localhost";
+    private static final int PORT = 479;
+
     public static void main(String[] args) {
-        String serverAddress = "localhost";
-        int serverPort = 5555;
+        if (args.length != 2) {
+            System.out.println("Usage: java UAClient <numFittingRooms> <systemTime>");
+            return;
+        }
 
-        int sleepTimer = Integer.parseInt(args[0]);
-        int numberOfFittingRooms = Integer.parseInt(args[1]);
+        int numFittingRooms = Integer.parseInt(args[0]);
+        long systemTime = Long.parseLong(args[1]);
 
-        try (Socket socket = new Socket(serverAddress, serverPort);
-             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-             ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
+        try (Socket cs = new Socket(HOST, PORT);
+             PrintWriter out = new PrintWriter(cs.getOutputStream(), true)) {
 
-            // Send an object to the server
-            Object clientOutput = "UACLIENT";
-            out.writeObject(clientOutput);
-            out.flush();
+            // Sending information to UACentralServer
+            out.println("CLIENT_INFO#" + numFittingRooms + "#" + systemTime);
 
-            // Send sleep timer and number of fitting rooms
-            out.writeInt(sleepTimer);
-            out.flush();
-            out.writeInt(numberOfFittingRooms);
-            out.flush();
-
-
-            while (true) {
-                // Receive a message from UACentralServer
-                try {
-                    Object centralServerMessage = in.readObject();
-
-                    // Process the message
-                    if (centralServerMessage instanceof String && ((String) centralServerMessage).contains("PermitsInfo")) {
-
-                    } else if (centralServerMessage instanceof String && ((String) centralServerMessage).startsWith("Customer#")) {
-
-                    } else if (centralServerMessage instanceof String && ((String) centralServerMessage).startsWith("FittingRoom#")) {
-
-                    }
-                    // Add more cases if needed for other types of messages
-
-                    // Perform other tasks as needed
-                } catch (IOException | ClassNotFoundException e) {
-                }
-
-            }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
 }

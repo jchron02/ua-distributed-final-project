@@ -1,83 +1,137 @@
-import java.io.*;
-import java.net.*;
-import java.util.concurrent.*;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.net.UnknownHostException;
+import java.util.Random;
+import java.util.concurrent.Semaphore;
 
 public class FittingRoomServer {
-    private static Semaphore fittingRoomLock;
-    private static Semaphore waitingRoomLock;
 
-    public static void main(String[] args) {
-        String centralServerAddress = "localhost";
-        int centralServerPort = 5555;
+    private static final String CENTRAL_SERVER_HOST = "localhost";
+    private static final int CENTRAL_SERVER_PORT = 252;
+    private Socket centralServerSocket;
+    private BufferedReader centralServerIn;
+    private PrintWriter centralServerOut;
 
-        try (Socket socket = new Socket(centralServerAddress, centralServerPort);
-             ObjectOutputStream out = new ObjectOutputStream(socket.getOutputStream());
-             ObjectInputStream in = new ObjectInputStream(socket.getInputStream())) {
-            // Register with the UACentralServer as a fitting room server
-            out.writeObject("FITTING_ROOM_SERVER");
-            out.flush();
+    private int waitingCount = 0;
+    private int numRooms;
+    private int numSeats;
+    private Semaphore seatController;
+    private Semaphore roomController;
+    private int serverId;
 
-            // Now the server is registered and can send/receive messages through UACentralServer
-            // For example, receive a message from UACentralServer
-            while (true) {
-                // Receive a message from UACentralServer
-                Object centralServerMessage = in.readObject();
-                System.out.println("Received from UACentralServer: " + centralServerMessage);
+    public FittingRoomServer() {
+        try {
+            // Connect to CentralServer
+            centralServerSocket = new Socket(CENTRAL_SERVER_HOST, CENTRAL_SERVER_PORT);
+            centralServerIn = new BufferedReader(new InputStreamReader(centralServerSocket.getInputStream()));
+            centralServerOut = new PrintWriter(centralServerSocket.getOutputStream(), true);
 
-                // Process the message
-                if (centralServerMessage instanceof String && ((String) centralServerMessage).startsWith("REQUESTING")) {
-                    // Handle permits information message
-                    updatePermits(out);
-                } else if (centralServerMessage instanceof String && ((String) centralServerMessage).startsWith("NEW")) {
-                    // Handle customer request
-                    handleCustomerRequest((String) centralServerMessage);
-                } else if (centralServerMessage instanceof String && ((String) centralServerMessage).startsWith("FITTING")) {
-                    // Handle fitting room request
-                    handleFittingRoomRequest((String) centralServerMessage);
+            // Register with CentralServer
+            centralServerOut.println("FITTING_ROOM");
+            centralServerOut.flush();
+            // Get server ID and initial configuration
+            serverId = Integer.parseInt(centralServerIn.readLine());
+            String countMessage = centralServerIn.readLine();
 
-                }
-                // Add more cases if needed for other types of messages
-
-                // Perform other tasks as needed
-
+            if (countMessage.startsWith("FITTING_ROOM#")) {
+                String[] split = countMessage.split("#");
+                numRooms = Integer.parseInt(split[1]);
+                numSeats = Integer.parseInt(split[3]);
+                seatController = new Semaphore(numSeats);
+                roomController = new Semaphore(numRooms);
             }
-        } catch (IOException | ClassNotFoundException e) {
+
+            centralServerOut.println("Fitting Room Server #" + serverId + " is ready.");
+
+            // Start accepting customers
+            acceptCustomers();
+
+        } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
     }
 
-    private static void updatePermits(ObjectOutputStream out) {
-        // Send available permits to UACentralServer
-        String permitsMessage = "PermitsInfo#" + fittingRoomLock.availablePermits() + "#" + waitingRoomLock.availablePermits();
-        System.out.println("Sending to UACentralServer: " + permitsMessage);
+    public void close(Socket socket) {
         try {
-            out.writeObject(permitsMessage);
-            out.flush();
+            socket.close();
+            System.out.println("Connection Closed.");
         } catch (IOException e) {
-            System.out.println("Error sending message to UACentralServer: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
-    private static void handleCustomerRequest(String customerRequest) {
-        // Parse the customer request and handle it
-        String[] parts = customerRequest.split("#");
-        if (parts.length == 2 && "Customer".equals(parts[0])) {
-            int customerId = Integer.parseInt(parts[1]);
-            // Handle the customer request as needed
-            System.out.println("Received customer " + customerId + " in FittingRoomServer");
+    public void acceptCustomers() throws IOException, InterruptedException {
+        String line;
+        while ((line = centralServerIn.readLine()) != null) {
+            if (line.startsWith("NEW_CUSTOMER#")) {
+                int customerID = Integer.parseInt(line.split("#")[1]);
+                Customer customer = new Customer(customerID, this);
+                customer.start();
+            }
         }
     }
 
-    private static void handleFittingRoomRequest(String fittingRoomRequest) {
-        String[] parts = fittingRoomRequest.split("#");
-        if (parts.length == 4 && "FITTING_ROOM".equals(parts[0]) && "WAITING_ROOM".equals(parts[2])) {
-            int numFittingRooms = Integer.parseInt(parts[1]);
-            int numWaitingRooms = Integer.parseInt(parts[3]);
-            // Handle the customer request as needed
-            System.out.println("Instantiating FittingRooms " + numFittingRooms + " and WaitingRooms " + numWaitingRooms + " in FittingRoomServer");
+    public void enterFitting(int customerID) throws InterruptedException, IOException {
+        roomController.acquire();
+        leaveWaiting();
+        System.out.println("\t\tCustomer #" + customerID + " enters the Fitting Room located at <Server " + serverId + ": " + InetAddress.getLocalHost() + ">");
+        centralServerOut.println("\t\tCustomer #" + customerID + " enters the Fitting Room located at <Server " + serverId + ": " + InetAddress.getLocalHost() + ">");
+        System.out.println("\t\tWe have " + seatController.availablePermits() + " waiting and " + roomController.availablePermits() + " changing");
+        centralServerOut.println("\t\tWe have " + seatController.availablePermits() + " waiting and " + roomController.availablePermits() + " changing");
+    }
 
-            fittingRoomLock = new Semaphore(numFittingRooms);
-            waitingRoomLock = new Semaphore(numWaitingRooms);
+    public void leaveFitting(int customerID) throws InterruptedException, IOException {
+        roomController.release();
+        System.out.println("\t\t\tCustomer #" + customerID + " leaves the  Fitting Room.");
+        centralServerOut.println("\t\t\tCustomer #" + customerID + " leaves the  Fitting Room.");
+    }
+
+    public void enterWaiting(int customerID) throws InterruptedException, IOException {
+        if (seatController.tryAcquire()) {
+            waitingCount++;
+            System.out.println("\tCustomer #" + customerID + " enters the waiting area on <Server " + serverId + ": " + InetAddress.getLocalHost() + "> and has a seat.");
+            centralServerOut.println("\tCustomer #" + customerID + " enters the waiting area on <Server " + serverId + ": " + InetAddress.getLocalHost() + "> and has a seat.");
+
+            System.out.println("\tWe have " + waitingCount + " waiting on <Server " + serverId + ": " + InetAddress.getLocalHost());
+            centralServerOut.println("\tWe have " + waitingCount + " waiting on <Server " + serverId + ": " + InetAddress.getLocalHost());
+        } else {
+            System.out.println("\tCustomer #" + customerID + " could not find a seat and leaves in frustration.");
+            centralServerOut.println("\tCustomer #" + customerID + " could not find a seat and leaves in frustration.");
         }
+    }
+
+    public void leaveWaiting() {
+        seatController.release();
+    }
+
+    class Customer extends Thread {
+        int customerID;
+        FittingRoomServer fit;
+
+        public Customer(int customerID, FittingRoomServer fit) {
+            this.customerID = customerID;
+            this.fit = fit;
+        }
+
+        @Override
+        public void run() {
+            System.out.println("Customer #" + customerID + " enters the system");
+            try {
+                fit.enterWaiting(customerID);
+                fit.enterFitting(customerID);
+                Thread.sleep(new Random().nextInt(1000));
+                fit.leaveFitting(customerID);
+            } catch (InterruptedException | IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    public static void main(String[] args) {
+        FittingRoomServer fr = new FittingRoomServer();
     }
 }
