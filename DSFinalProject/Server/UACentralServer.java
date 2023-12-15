@@ -93,7 +93,6 @@ public class UACentralServer {
                         String[] splitLine = line.split("_");
                         logInfo("Client <" + socket.getInetAddress().getHostAddress() + "> sent over arguments. Sleep Timer - " + splitLine[1] + ". Fitting Rooms to Initialize -  " + splitLine[2]);
                         initializeTotalRooms(splitLine[2]);
-                        allowCustomerCreation = true;
                         systemTime = Integer.parseInt(splitLine[1]);
                     } else if (line.startsWith("DISCONNECTED_")) {
                         logInfo("Client <" + socket.getInetAddress().getHostAddress() + "> disconnected");
@@ -132,10 +131,18 @@ public class UACentralServer {
                         String[] splitLine = line.split("_");
                         updateLocks(splitLine, serverInfo);
                         logInfo("New lock information given from Fitting Room Server <" + socket.getInetAddress().getHostAddress() + ">  Total Fitting Rooms available - " + trackingFittingRooms + ". Total Waiting Rooms available - " + trackingWaitingRooms);
-                    } else {
-                        logWarning("Server <" + socket.getInetAddress().getHostAddress() + "> sent over unknown command - " + line);
+                    } else if(line.startsWith("DISCONNECT_")){
+                        break;
                     }
+                    logWarning("Server <" + socket.getInetAddress().getHostAddress() + "> sent over unknown command - " + line);
                 }
+                socket.close();
+                serverWriter.close();
+                serverReader.close();
+                serverWriters.remove(serverWriter);
+                serverReaders.remove(serverReader);
+                fittingRoomServersList.remove(socket);
+
             } catch (IOException e) {
                 logError("Error in serverListener - " + e.getMessage());
                 throw new RuntimeException(e);
@@ -234,7 +241,8 @@ public class UACentralServer {
     public void systemTimer() {
         new Thread(() -> {
             try {
-                Thread.sleep(1000L * systemTime);
+                Thread.sleep(1000
+                        * systemTime);
                 allowCustomerCreation = false;
                 logInfo("System time has expired. The Store is close. Customer creation is closed.");
             } catch (InterruptedException e) {

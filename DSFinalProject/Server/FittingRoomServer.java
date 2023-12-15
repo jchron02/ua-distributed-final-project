@@ -68,6 +68,9 @@ public class FittingRoomServer {
             } catch (IOException e) {
                 logError("Error in server listener - " + e.getMessage());
             }
+            finally {
+                centralServerOut.println("DISCONNECT_BYE");
+            }
         }).start();
     }
 
