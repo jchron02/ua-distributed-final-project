@@ -195,25 +195,18 @@ public class UACentralServer {
     }
 
     public int roundRobin() {
-        int index = -1;
         if (fittingRoomServersList.size() > 1) {
-            for (int i = (lastUsedServerIndex + 1) % serverInfoList.size(); i != lastUsedServerIndex; i = (i + 1) % serverInfoList.size()) {
-                ServerInfo serverInfo = serverInfoList.get(i);
-
-                if (serverInfo.fittingRooms > 0) {
-                    index = i;
-                    break;
-                } else if (serverInfo.waitingRooms > 0) {
-                    index = i;
-                    break;
-                }
+            if (lastUsedServerIndex == 0) {
+                lastUsedServerIndex = 1;
+            } else if (lastUsedServerIndex == fittingRoomServersList.size() - 1) {
+                lastUsedServerIndex = 0;
+            } else {
+                lastUsedServerIndex++;
             }
         } else {
-            index = 0;
+            lastUsedServerIndex = 0;
         }
-        lastUsedServerIndex = index;
-
-        return index;
+        return lastUsedServerIndex;
     }
 
     public void updateLocks(String[] updateMessage, ServerInfo serverInfo) {
@@ -251,7 +244,7 @@ public class UACentralServer {
             } catch (InterruptedException e) {
                 logError("Error in systemTimer - " + e.getMessage());
                 throw new RuntimeException(e);
-            }finally {
+            } finally {
                 allowCustomerCreation = false;
             }
         }).start();
