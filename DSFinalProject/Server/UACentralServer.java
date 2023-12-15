@@ -131,7 +131,7 @@ public class UACentralServer {
                         String[] splitLine = line.split("_");
                         updateLocks(splitLine, serverInfo);
                         logInfo("New lock information given from Fitting Room Server <" + socket.getInetAddress().getHostAddress() + ">  Total Fitting Rooms available - " + trackingFittingRooms + ". Total Waiting Rooms available - " + trackingWaitingRooms);
-                    } else if(line.startsWith("DISCONNECT_")){
+                    } else if (line.startsWith("DISCONNECT_")) {
                         break;
                     }
                     logWarning("Server <" + socket.getInetAddress().getHostAddress() + "> sent over unknown command - " + line);
@@ -196,16 +196,20 @@ public class UACentralServer {
 
     public int roundRobin() {
         int index = -1;
-        for (int i = (lastUsedServerIndex + 1) % serverInfoList.size(); i != lastUsedServerIndex; i = (i + 1) % serverInfoList.size()) {
-            ServerInfo serverInfo = serverInfoList.get(i);
+        if (fittingRoomServersList.size() > 1) {
+            for (int i = (lastUsedServerIndex + 1) % serverInfoList.size(); i != lastUsedServerIndex; i = (i + 1) % serverInfoList.size()) {
+                ServerInfo serverInfo = serverInfoList.get(i);
 
-            if (serverInfo.fittingRooms > 0) {
-                index = i;
-                break;
-            }else if(serverInfo.waitingRooms > 0){
-                index = i;
-                break;
+                if (serverInfo.fittingRooms > 0) {
+                    index = i;
+                    break;
+                } else if (serverInfo.waitingRooms > 0) {
+                    index = i;
+                    break;
+                }
             }
+        } else {
+            index = 0;
         }
         lastUsedServerIndex = index;
 
@@ -241,13 +245,14 @@ public class UACentralServer {
     public void systemTimer() {
         new Thread(() -> {
             try {
-                Thread.sleep(1000
-                        * systemTime);
-                allowCustomerCreation = false;
+                Thread.sleep(1000 * systemTime);
+
                 logInfo("System time has expired. The Store is close. Customer creation is closed.");
             } catch (InterruptedException e) {
                 logError("Error in systemTimer - " + e.getMessage());
                 throw new RuntimeException(e);
+            }finally {
+                allowCustomerCreation = false;
             }
         }).start();
     }
@@ -257,11 +262,11 @@ public class UACentralServer {
             try {
                 for (int i = 0; i < numberOfCustomers; i++) {
                     if (allowCustomerCreation) {
-                        relayMessageToFittingRoomServer("CUSTOMER_" + (i+1), roundRobin());
+                        relayMessageToFittingRoomServer("CUSTOMER_" + (i + 1), roundRobin());
                     } else {
                         relayMessageToClient("Customer + " + i + " leaves the store. It's closed.");
                     }
-                    Thread.sleep(250); // Random time it takes for a customer to arrive :)
+                    Thread.sleep(1000); // Random time it takes for a customer to arrive :)
                 }
                 closeConnectionToClient.await();
                 clientWriter.println("ACCOUNTED_THANKS FOR SHOPPING");
