@@ -63,7 +63,6 @@ public class UACentralServer {
             logError("Error at setupLogger() - " + e.getMessage());
         }
     }
-
     /**
      * Accepts a client connection and starts client handling.
      */
@@ -217,7 +216,7 @@ public class UACentralServer {
             initializeFittingRooms("INITIALIZE_" + (fittingRoomsPerServer + fittingRoomRemainder) + "_" + (waitingRoomPerServer + waitingRoomRemainder), fittingRoomServersList.size() - 1);
             serverInfoList.get(fittingRoomServersList.size() - 1).fittingRooms = (fittingRoomsPerServer + fittingRoomRemainder);
             serverInfoList.get(fittingRoomServersList.size() - 1).waitingRooms = (fittingRoomsPerServer + fittingRoomRemainder);
-//            systemTimer();
+            systemTimer();
             startCustomers();
 
         } catch (NumberFormatException e) {
@@ -329,7 +328,6 @@ public class UACentralServer {
         }).start();
     }
 
-
     /**
      * Relays a message to all fitting room servers.
      *
@@ -400,4 +398,3 @@ public class UACentralServer {
         private int serverId;
     }
 }
-

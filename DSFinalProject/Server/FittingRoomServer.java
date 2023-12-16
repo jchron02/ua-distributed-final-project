@@ -51,6 +51,7 @@ public class FittingRoomServer {
         }
     }
 
+
     /**
      * Reads in arguments from the central server.
      *
@@ -104,7 +105,6 @@ public class FittingRoomServer {
         }
     }
 
-
     /**
      * Accepts customers coming in from the central server.
      *
@@ -120,7 +120,7 @@ public class FittingRoomServer {
             logError("Error parsing customer information - " + e.getMessage());
         }
     }
-
+ 
     /**
      * Allows customers to enter an available fitting room.
      *
@@ -162,7 +162,7 @@ public class FittingRoomServer {
             e.printStackTrace();
         }
     }
-
+  
     /**
      * Allows customers to take a waiting room seat.
      *
@@ -233,7 +233,6 @@ public class FittingRoomServer {
         }
     }
 
-
     /**
      * Displays log info.
      *
@@ -252,7 +251,6 @@ public class FittingRoomServer {
         logger.warning(message);
     }
 
-
     /**
      * Displays a log error.
      *
@@ -265,4 +263,6 @@ public class FittingRoomServer {
     public static void main(String[] args) {
         new FittingRoomServer();
     }
+
 }
+
