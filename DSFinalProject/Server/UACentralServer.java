@@ -1,3 +1,10 @@
+/********************************
+ Name: Joshua C, David T, Christopher M
+ Team: 3
+ Final Project
+ Due Date: 12/15/2023
+ ********************************/
+
 import java.io.*;
 import java.net.*;
 import java.util.*;
@@ -28,6 +35,9 @@ public class UACentralServer {
     private ArrayList<BufferedReader> serverReaders = new ArrayList<>();
     private ArrayList<ServerInfo> serverInfoList = new ArrayList<>();
 
+    /**
+     * Creates a new UACentralServer.
+     */
     public UACentralServer() {
         try {
             setupLogger();
@@ -39,6 +49,9 @@ public class UACentralServer {
         }
     }
 
+    /**
+     * Sets up the logging system for UACentralServer.
+     */
     public void setupLogger() {
         try {
             logger = Logger.getLogger(UACentralServer.class.getName());
@@ -50,7 +63,9 @@ public class UACentralServer {
             logError("Error at setupLogger() - " + e.getMessage());
         }
     }
-
+    /**
+     * Accepts a client connection and starts client handling.
+     */
     public void acceptClients() {
         new Thread(() -> {
             try {
@@ -67,6 +82,9 @@ public class UACentralServer {
         }).start();
     }
 
+    /**
+     * Accepts a fitting room server connections and starts fitting room server handling.
+     */
     public void acceptFittingRoomServers() {
         new Thread(() -> {
             try {
@@ -84,6 +102,11 @@ public class UACentralServer {
         }).start();
     }
 
+    /**
+     * Checks if the client has sent arguments to UACentralServer or has disconnected.
+     *
+     * @param socket
+     */
     public void clientListener(Socket socket) {
         new Thread(() -> {
             try {
@@ -133,8 +156,9 @@ public class UACentralServer {
                         logInfo("New lock information given from Fitting Room Server <" + socket.getInetAddress().getHostAddress() + ">  Total Fitting Rooms available - " + trackingFittingRooms + ". Total Waiting Rooms available - " + trackingWaitingRooms);
                     } else if (line.startsWith("DISCONNECT_")) {
                         break;
+                    } else {
+                        logWarning("Server <" + socket.getInetAddress().getHostAddress() + "> sent over unknown command - " + line);
                     }
-                    logWarning("Server <" + socket.getInetAddress().getHostAddress() + "> sent over unknown command - " + line);
                 }
                 socket.close();
                 serverWriter.close();
@@ -142,14 +166,19 @@ public class UACentralServer {
                 serverWriters.remove(serverWriter);
                 serverReaders.remove(serverReader);
                 fittingRoomServersList.remove(socket);
+                serverInfoList.remove(serverInfo);
+        } catch(IOException e){
+            logError("Error in serverListener - " + e.getMessage());
+            throw new RuntimeException(e);
+        }
+    }).start();
+}
 
-            } catch (IOException e) {
-                logError("Error in serverListener - " + e.getMessage());
-                throw new RuntimeException(e);
-            }
-        }).start();
-    }
-
+    /**
+     * Creates and output stream and input stream for a client connection.
+     *
+     * @param clientSocket
+     */
     public void clientHandler(Socket clientSocket) {
         try {
             clientReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
@@ -161,6 +190,12 @@ public class UACentralServer {
         }
     }
 
+    /**
+     * Initializes the total number of fitting rooms and waiting chairs.
+     *
+     * @param rooms
+     * @throws NumberFormatException
+     */
     public void initializeTotalRooms(String rooms) {
         try {
             fittingRooms = Integer.parseInt(rooms);
@@ -189,11 +224,22 @@ public class UACentralServer {
         }
     }
 
+    /**
+     * Calls a method to relay initialization of fitting rooms to the fitting room server.
+     *
+     * @param message
+     * @param index
+     */
     public void initializeFittingRooms(String message, int index) {
-
         relayMessageToFittingRoomServer(message, index);
     }
 
+    /**
+     * Allocates where the customer should go based on a round-robin system.
+     *
+     * @return index
+     * @throws RuntimeException
+     */
     public int roundRobin() {
         if (fittingRoomServersList.size() > 1) {
             if (lastUsedServerIndex == 0) {
@@ -209,6 +255,12 @@ public class UACentralServer {
         return lastUsedServerIndex;
     }
 
+    /**
+     * Updates the locks for the waiting rooms and fitting rooms.
+     *
+     * @param updateMessage
+     * @param serverInfo
+     */
     public void updateLocks(String[] updateMessage, ServerInfo serverInfo) {
         try {
             if (updateMessage[1].equals("WAITING")) {
@@ -227,29 +279,33 @@ public class UACentralServer {
                     trackingFittingRooms++;
                     serverInfo.fittingRooms++;
                 }
-            } else if (updateMessage[1].equals("INITIALIZED")) {
-
             }
         } catch (Exception e) {
             logError("Error updating locks - " + e.getMessage());
         }
     }
+    /**
+     * Creates the amount of time until the system shuts down.
+     *
+     * @throws RuntimeException
+     *
+     */
+//    public void systemTimer() {
+//        new Thread(() -> {
+//            try {
+//                Thread.sleep(1000L * systemTime);
+//                allowCustomerCreation = false;
+//                logInfo("System time has expired. The Store is close. Customer creation is closed.");
+//            } catch (InterruptedException e) {
+//                logError("Error in systemTimer - " + e.getMessage());
+//                throw new RuntimeException(e);
+//            }
+//        }).start();
+//    }
 
-    public void systemTimer() {
-        new Thread(() -> {
-            try {
-                Thread.sleep(1000 * systemTime);
-
-                logInfo("System time has expired. The Store is close. Customer creation is closed.");
-            } catch (InterruptedException e) {
-                logError("Error in systemTimer - " + e.getMessage());
-                throw new RuntimeException(e);
-            } finally {
-                allowCustomerCreation = false;
-            }
-        }).start();
-    }
-
+    /**
+     * Creates the customers or leaves an update on the status of the store.
+     */
     public void startCustomers() {
         new Thread(() -> {
             try {
@@ -272,6 +328,13 @@ public class UACentralServer {
         }).start();
     }
 
+    /**
+     * Relays a message to all fitting room servers.
+     *
+     * @param message
+     * @param index
+     * @throws RuntimeException
+     */
     public void relayMessageToFittingRoomServer(String message, int index) {
         try {
             serverWriters.get(index).println(message);
@@ -280,6 +343,11 @@ public class UACentralServer {
         }
     }
 
+    /**
+     * Relays a message to all client servers.
+     *
+     * @param message
+     */
     public void relayMessageToClient(String message) {
         try {
             clientWriter.println(message);
@@ -298,18 +366,32 @@ public class UACentralServer {
         new UACentralServer();
     }
 
+    /**
+     * Displays log info.
+     *
+     * @param message
+     */
     private void logInfo(String message) {
         logger.info(message);
     }
 
+    /**
+     * Displays a log warning.
+     *
+     * @param message
+     */
     private void logWarning(String message) {
         logger.warning(message);
     }
 
+    /**
+     * Displays a log error.
+     *
+     * @param message
+     */
     private void logError(String message) {
         logger.severe(message);
     }
-
     class ServerInfo {
         private int fittingRooms;
         private int waitingRooms;
