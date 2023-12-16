@@ -104,6 +104,7 @@ public class FittingRoomServer {
         }
     }
 
+
     /**
      * Accepts customers coming in from the central server.
      * @param customerInfo
@@ -127,6 +128,7 @@ public class FittingRoomServer {
      *
      *
      */
+
     public void enterFitting(int customerID) {
         try {
             roomController.acquire();
@@ -149,6 +151,7 @@ public class FittingRoomServer {
      *
      *
      */
+
     public void leaveFitting(int customerID) {
         try {
             roomController.release();
@@ -198,7 +201,7 @@ public class FittingRoomServer {
         seatController.release();
         updateLocks("WAITING", "RELEASE");
     }
-
+  
     /**
      * Updates locks and relays message to the central server.
      * @param type
@@ -237,6 +240,7 @@ public class FittingRoomServer {
         }
     }
 
+
     /**
      * Displays log info.
      * @param message
@@ -257,6 +261,7 @@ public class FittingRoomServer {
         logger.warning(message);
     }
 
+
     /**
      * Displays a log error.
      * @param message
@@ -270,4 +275,3 @@ public class FittingRoomServer {
     public static void main(String[] args) {
         new FittingRoomServer();
     }
-}

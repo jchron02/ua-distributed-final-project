@@ -141,16 +141,24 @@ public class UACentralServer {
             } catch (IOException e) {
                 logError("Error in clientListener - " + e.getMessage());
                 throw new RuntimeException(e);
+
+    public void acceptFittingRoomServers() {
+        new Thread(() -> {
+            try {
+                ServerSocket fittingRoomServerSocket = new ServerSocket(252);
+                logInfo("Fitting Room Server listening on port - " + fittingRoomServerSocket.getLocalPort());
+                while (true) {
+                    Socket fittingRoomServer = fittingRoomServerSocket.accept();
+                    logInfo("New fitting room server connection from IP address <" + fittingRoomServer.getInetAddress().getHostAddress() + ">");
+                    fittingRoomServersList.add(fittingRoomServer);
+                    serverListener(fittingRoomServer);
+                }
+            } catch (IOException ex) {
+                logWarning("Error at accepting fitting room servers - " + ex.getMessage());
             }
         }).start();
     }
-
-    /**
-     * Checks if the fitting room server has sent arguments.
-     * @param socket
-     *
-     *
-     */
+        
     public void serverListener(Socket socket) {
         new Thread(() -> {
             try {
@@ -171,6 +179,7 @@ public class UACentralServer {
                         String[] splitLine = line.split("_");
                         updateLocks(splitLine, serverInfo);
                         logInfo("New lock information given from Fitting Room Server <" + socket.getInetAddress().getHostAddress() + ">  Total Fitting Rooms available - " + trackingFittingRooms + ". Total Waiting Rooms available - " + trackingWaitingRooms);
+
                     } else if (line.startsWith("DISCONNECT_")) {
                         break;
                     }else{
@@ -183,12 +192,19 @@ public class UACentralServer {
                 serverWriters.remove(serverWriter);
                 serverReaders.remove(serverReader);
                 fittingRoomServersList.remove(socket);
+
+                    } else {
+                        logWarning("Server <" + socket.getInetAddress().getHostAddress() + "> sent over unknown command - " + line);
+                    }
+                }
+
             } catch (IOException e) {
                 logError("Error in serverListener - " + e.getMessage());
                 throw new RuntimeException(e);
             }
         }).start();
     }
+
 
     /**
      * Creates and output stream and input stream for a client connection.
@@ -299,8 +315,50 @@ public class UACentralServer {
                     trackingFittingRooms++;
                     serverInfo.fittingRooms++;
                 }
-            } else if (updateMessage[1].equals("INITIALIZED")) {
+            }
+    }
 
+    public void initializeFittingRooms(String message, int index) {
+
+        relayMessageToFittingRoomServer(message, index);
+    }
+
+    public int roundRobin() {
+        int index = -1;
+        for (int i = (lastUsedServerIndex + 1) % serverInfoList.size(); i != lastUsedServerIndex; i = (i + 1) % serverInfoList.size()) {
+            ServerInfo serverInfo = serverInfoList.get(i);
+
+            if (serverInfo.fittingRooms > 0) {
+                index = i;
+                break;
+            }else if(serverInfo.waitingRooms > 0){
+                index = i;
+                break;
+            }
+        }
+        lastUsedServerIndex = index;
+
+        return index;
+    }
+
+    public void updateLocks(String[] updateMessage, ServerInfo serverInfo) {
+        try {
+            if (updateMessage[1].equals("WAITING")) {
+                if (updateMessage[2].equals("ACQUIRE")) {
+                    trackingWaitingRooms--;
+                    serverInfo.waitingRooms--;
+                } else {
+                    trackingWaitingRooms++;
+                    serverInfo.waitingRooms++;
+                }
+            } else if (updateMessage[1].equals("FITTING")) {
+                if (updateMessage[2].equals("ACQUIRE")) {
+                    trackingFittingRooms--;
+                    serverInfo.fittingRooms--;
+                } else {
+                    trackingFittingRooms++;
+                    serverInfo.fittingRooms++;
+                }
             }
         } catch (Exception e) {
             logError("Error updating locks - " + e.getMessage());
@@ -354,6 +412,7 @@ public class UACentralServer {
         }).start();
     }
 
+
     /**
      * Relays a message to all fitting room servers.
      * @param message
@@ -393,6 +452,10 @@ public class UACentralServer {
         new UACentralServer();
     }
 
+    private void logInfo(String message) {
+        logger.info(message);
+    }
+
     /**
      * Displays log info.
      * @param message
@@ -412,7 +475,7 @@ public class UACentralServer {
     private void logWarning(String message) {
         logger.warning(message);
     }
-
+ 
     /**
      * Displays a log error.
      * @param message
