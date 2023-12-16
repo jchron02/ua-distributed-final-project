@@ -30,9 +30,7 @@ public class FittingRoomServer {
     /**
      * Creates a new FittingRoomServer.
      *
-     * 
      * @throws SecurityException
-     *
      */
     public FittingRoomServer() {
         try {
@@ -55,9 +53,8 @@ public class FittingRoomServer {
 
     /**
      * Reads in arguments from the central server.
+     *
      * @param socket
-     *
-     *
      */
     public void serverListener(Socket socket) {
         new Thread(() -> {
@@ -88,10 +85,10 @@ public class FittingRoomServer {
 
     /**
      * Initializes the number of fitting rooms and number of waiting seats.
+     *
      * @param numRooms
      * @param numSeats
      * @throws NumberFormatException
-     *
      */
     public void initializeRooms(String numRooms, String numSeats) {
         try {
@@ -110,9 +107,9 @@ public class FittingRoomServer {
 
     /**
      * Accepts customers coming in from the central server.
+     *
      * @param customerInfo
      * @throws NumberFormatException
-     *
      */
     public void acceptCustomers(String[] customerInfo) {
         try {
@@ -126,10 +123,8 @@ public class FittingRoomServer {
 
     /**
      * Allows customers to enter an available fitting room.
+     *
      * @param customerID
-     *
-     *
-     *
      */
 
     public void enterFitting(int customerID) {
@@ -143,16 +138,15 @@ public class FittingRoomServer {
             logInfo("\t\tWe have " + (waitingSeats - seatController.availablePermits()) + " waiting and " + (fittingRooms - roomController.availablePermits()) + " changing");
             sendMessageToClient("\t\tWe have " + (waitingSeats - seatController.availablePermits()) + " waiting and " + (fittingRooms - roomController.availablePermits()) + " changing");
         } catch (InterruptedException | IOException e) {
-            logError("Error during entering fitting room - "+ e.getMessage());
+            logError("Error during entering fitting room - " + e.getMessage());
             e.printStackTrace();
         }
     }
 
     /**
      * Takes customers out of fitting rooms.
+     *
      * @param customerID
-     *
-     *
      */
 
     public void leaveFitting(int customerID) {
@@ -171,9 +165,8 @@ public class FittingRoomServer {
 
     /**
      * Allows customers to take a waiting room seat.
+     *
      * @param customerID
-     *
-     *
      */
     public void enterWaiting(int customerID) {
         try {
@@ -198,19 +191,17 @@ public class FittingRoomServer {
      * Takes customers out of the waiting room seats and updates locks.
      *
      * @throws RuntimeException
-     *
      */
     public void leaveWaiting() {
         seatController.release();
         updateLocks("WAITING", "RELEASE");
     }
-  
+
     /**
      * Updates locks and relays message to the central server.
+     *
      * @param type
      * @param action
-     *
-     *
      */
     public void updateLocks(String type, String action) {
         centralServerOut.println("UPDATELOCKS_" + type + "_" + action);
@@ -218,9 +209,8 @@ public class FittingRoomServer {
 
     /**
      * Sends a message to the client server.
+     *
      * @param message
-     *
-     *
      */
     public void sendMessageToClient(String message) {
         centralServerOut.println("RELAY_" + message);
@@ -246,9 +236,8 @@ public class FittingRoomServer {
 
     /**
      * Displays log info.
+     *
      * @param message
-     *
-     *
      */
     private void logInfo(String message) {
         logger.info(message);
@@ -256,9 +245,8 @@ public class FittingRoomServer {
 
     /**
      * Displays a log warning.
+     *
      * @param message
-     *
-     *
      */
     private void logWarning(String message) {
         logger.warning(message);
@@ -267,9 +255,8 @@ public class FittingRoomServer {
 
     /**
      * Displays a log error.
+     *
      * @param message
-     *
-     *
      */
     private void logError(String message) {
         logger.severe(message);
@@ -278,3 +265,4 @@ public class FittingRoomServer {
     public static void main(String[] args) {
         new FittingRoomServer();
     }
+}

@@ -1,21 +1,34 @@
+/********************************
+ Name: Joshua C, David T, Christopher M
+ Team: 3
+ Final Project
+ Due Date: 12/15/2023
+ ********************************/
 import java.io.*;
 import java.net.*;
 
 public class UAClient {
     private final String HOST = "localhost";
     private final int PORT = 479;
-    private Socket clientServer;
+    private Socket centralServerSocket;
     private int numFittingRooms;
     private int systemTime;
     private BufferedReader in;
     private PrintWriter out;
-
+  
+    /**
+     * Creates a new UAClient.
+     * @param systemTime
+     * @param numFittingRooms
+     * @throws RuntimeException
+     *
+     */
     private UAClient(int systemTime,int numFittingRooms) {
         this.numFittingRooms = numFittingRooms;
         this.systemTime = systemTime;
         try  {
-            clientServer = new Socket(HOST, PORT);
-            serverListener(clientServer);
+            centralServerSocket = new Socket(HOST, PORT);
+            serverListener(centralServerSocket);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -28,6 +41,13 @@ public class UAClient {
         }
         UAClient client = new UAClient(Integer.parseInt(args[0]), Integer.parseInt(args[1]));
     }
+  
+    /**
+     * Listens and takes in arguments from the central server.
+     * @param socket
+     *
+     *
+     */
 
     public void serverListener(Socket socket) {
         new Thread(new Runnable() {
@@ -55,6 +75,3 @@ public class UAClient {
             }
         }).start();
     }
-
-
-}
