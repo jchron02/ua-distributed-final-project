@@ -14,9 +14,6 @@ public class FittingRoomServer {
     private PrintWriter centralServerOut;
     private int fittingRooms;
     private int waitingSeats;
-    private int waitingCount = 0;
-    private int numRooms;
-    private int numSeats;
     private Semaphore seatController;
     private Semaphore roomController;
     private int serverId;
@@ -63,6 +60,9 @@ public class FittingRoomServer {
                 }
             } catch (IOException e) {
                 logError("Error in server listener - " + e.getMessage());
+            }
+            finally {
+                centralServerOut.println("DISCONNECT_BYE");
             }
         }).start();
     }
