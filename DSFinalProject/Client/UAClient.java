@@ -9,14 +9,7 @@ public class UAClient {
     private int systemTime;
     private BufferedReader in;
     private PrintWriter out;
-  
-    /**
-     * Creates a new UAClient.
-     * @param systemTime
-     * @param numFittingRooms
-     * @throws RuntimeException
-     *
-     */
+
     private UAClient(int systemTime,int numFittingRooms) {
         this.numFittingRooms = numFittingRooms;
         this.systemTime = systemTime;
@@ -35,13 +28,6 @@ public class UAClient {
         }
         UAClient client = new UAClient(Integer.parseInt(args[0]), Integer.parseInt(args[1]));
     }
-  
-    /**
-     * Listens and takes in arguments from the central server.
-     * @param socket
-     *
-     *
-     */
 
     public void serverListener(Socket socket) {
         new Thread(new Runnable() {
@@ -69,3 +55,6 @@ public class UAClient {
             }
         }).start();
     }
+
+
+}
