@@ -4,7 +4,7 @@ import java.net.*;
 public class UAClient {
     private final String HOST = "localhost";
     private final int PORT = 479;
-    private Socket clientServer;
+    private Socket centralServerSocket;
     private int numFittingRooms;
     private int systemTime;
     private BufferedReader in;
@@ -14,8 +14,8 @@ public class UAClient {
         this.numFittingRooms = numFittingRooms;
         this.systemTime = systemTime;
         try  {
-            clientServer = new Socket(HOST, PORT);
-            serverListener(clientServer);
+            centralServerSocket = new Socket(HOST, PORT);
+            serverListener(centralServerSocket);
         } catch (IOException e) {
             e.printStackTrace();
         }

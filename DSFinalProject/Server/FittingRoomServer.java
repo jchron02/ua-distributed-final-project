@@ -18,24 +18,20 @@ public class FittingRoomServer {
     private Semaphore roomController;
     private int serverId;
 
-    // Logger setup
     private static final Logger logger = Logger.getLogger(FittingRoomServer.class.getName());
     private FileHandler fileHandler;
 
     public FittingRoomServer() {
         try {
-            // Set up logger
             fileHandler = new FileHandler(LOG_FILE, true);
             logger.addHandler(fileHandler);
             SimpleFormatter formatter = new SimpleFormatter();
             fileHandler.setFormatter(formatter);
 
-            // Connect to CentralServer
             centralServerSocket = new Socket(HOST, PORT);
             centralServerIn = new BufferedReader(new InputStreamReader(centralServerSocket.getInputStream()));
             centralServerOut = new PrintWriter(new OutputStreamWriter(centralServerSocket.getOutputStream()), true);
 
-            // Register with CentralServer
             centralServerOut.println("FITTING_ROOM");
             serverListener(centralServerSocket);
 
@@ -102,7 +98,7 @@ public class FittingRoomServer {
             leaveWaiting();
             logInfo("\t\tCustomer #" + customerID + " enters Fitting Room located at <Server " + serverId + ": " + InetAddress.getLocalHost() + ">");
             sendMessageToClient("\t\tCustomer #" + customerID + " enters Fitting Room located at <Server " + serverId + ": " + InetAddress.getLocalHost() + ">");
-            Thread.sleep(new Random().nextInt(1000));
+            Thread.sleep(new Random().nextInt(1000)); //Time it takes for a customer to change
             logInfo("\t\tWe have " + (waitingSeats - seatController.availablePermits()) + " waiting and " + (fittingRooms - roomController.availablePermits()) + " changing");
             sendMessageToClient("\t\tWe have " + (waitingSeats - seatController.availablePermits()) + " waiting and " + (fittingRooms - roomController.availablePermits()) + " changing");
         } catch (InterruptedException | IOException e) {

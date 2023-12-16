@@ -298,7 +298,6 @@ public class UACentralServer {
         new UACentralServer();
     }
 
-    // Helper methods for logging
     private void logInfo(String message) {
         logger.info(message);
     }
